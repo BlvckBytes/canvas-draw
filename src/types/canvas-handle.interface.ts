@@ -1,7 +1,8 @@
 import { ControlRegistry } from './controls/control-registry.interface';
 import { Vector2 } from './vector2.interface';
 
-export interface CanvasHandle extends ControlRegistry {
+export interface CanvasHandle {
+  controlRegistry: ControlRegistry;
   draw(increaseFrameId: boolean): void
   getCurrentFrameIndex(): number;
   getLastMousePosition(): Vector2

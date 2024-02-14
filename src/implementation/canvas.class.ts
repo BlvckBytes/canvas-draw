@@ -33,6 +33,7 @@ import { DrawingFactory } from '../types/drawing-factory.type';
 import { COLOR_BLACK } from './style-config-impl.class';
 import { GraphedCurveImpl } from './custom/graphed-curve-impl';
 import { PolygonImpl } from './custom/polygon-impl.class';
+import { ControlRegistry } from '../types/controls/control-registry.interface';
 
 const provider: CanvasTypeProvider = {
   makeBezierCurve(start, firstControlPoint, secondControlPoint, end, style) {
@@ -161,36 +162,25 @@ export class Canvas implements CanvasHandle {
 
   private drawing: Drawing;
 
-  private canvasElement: HTMLCanvasElement;
   private renderingContext: CanvasRenderingContext2D;
-
-  // By how much to scale coordinates, determines the real size of one unit
-  private scalingFactor: number;
-
-  // By how much the canvas should be overscaled in comparison to the DOM
-  // node, so that - in effect - the node's sharpness increases
-  private sharpness: number;
 
   private zoomLevel = 1;
   private minZoomLevel = Canvas.DEFAULT_MIN_ZOOM_LEVEL;
   private maxZoomLevel = Canvas.DEFAULT_MAX_ZOOM_LEVEL;
 
-  private existingButtons: { [key: string]: ButtonHandle } = {};
-  private existingSliders: { [key: string]: SliderHandle } = {};
-
   constructor(
+    public controlRegistry: ControlRegistry,
     drawingFactory: DrawingFactory,
-    canvasElement: HTMLCanvasElement,
-    scalingFactor: number,
-    sharpness: number,
+    private canvasElement: HTMLCanvasElement,
+    // By how much to scale coordinates, determines the real size of one unit
+    private scalingFactor: number,
+    // By how much the canvas should be overscaled in comparison to the DOM
+    // node, so that - in effect - the node's sharpness increases
+    private sharpness: number,
   ) {
     this.drawing = drawingFactory(provider);
 
-    this.canvasElement = canvasElement;
     this.renderingContext = this.canvasElement.getContext('2d')!;
-
-    this.scalingFactor = scalingFactor;
-    this.sharpness = sharpness;
 
     this.registerEvents();
     this.drawing.onCanvasSetup(this);
@@ -765,140 +755,5 @@ export class Canvas implements CanvasHandle {
     this.canvasElement.addEventListener('unload', () => {
       this.stop();
     });
-  }
-
-  registerButton(name: string, onClick: () => void): ButtonHandle | null {
-    const namePattern = /[a-zA-Z]+[_a-zA-Z0-9-]*/
-
-    if (!namePattern.test(name)) {
-      console.error(`The name ${name} is invalid!`);
-      return null;
-    }
-
-    const lowerName = name.toLowerCase()
-
-    if (this.existingButtons[lowerName]) {
-      console.error(`A button by the name ${name} already exists!`);
-      return null;
-    }
-
-    const baseClass = "canvas-button"
-    const activeClass = "canvas-button--active"
-
-    const buttonContainer = this.singleRootHtml(`<div class="${baseClass} ${baseClass}--${name}"></div>`)
-    const textElement = this.singleRootHtml(`<p class="canvas-button__text"></p>`)
-
-    buttonContainer.appendChild(textElement);
-
-    buttonContainer.addEventListener('click', onClick);
-
-    // TODO: Append this properly
-    this.canvasElement.parentElement?.appendChild(buttonContainer);
-
-    const handle = new class implements ButtonHandle {
-      setActive(state: boolean): ButtonHandle {
-        const hasActiveClass = buttonContainer.classList.contains(activeClass)
-
-        if (state) {
-          if (hasActiveClass)
-            return this;
-
-          buttonContainer.classList.add(activeClass);
-          return this;
-        }
-
-        if (!hasActiveClass)
-          return this;
-
-        buttonContainer.classList.remove(activeClass);
-        return this
-      }
-
-      setText(text: string): ButtonHandle {
-        textElement.innerHTML = text;
-        return this
-      }
-    }
-
-    this.existingButtons[lowerName] = handle;
-    return handle
-  }
-
-  registerSlider(name: string, onChange: (value: number) => void): SliderHandle | null {
-    const namePattern = /[a-zA-Z]+[_a-zA-Z0-9-]*/
-
-    if (!namePattern.test(name)) {
-      console.error(`The name ${name} is invalid!`);
-      return null;
-    }
-
-    const lowerName = name.toLowerCase()
-
-    if (this.existingSliders[lowerName]) {
-      console.error(`A slider by the name ${name} already exists!`);
-      return null;
-    }
-
-    const baseClass = "canvas-slider"
-
-    const sliderContainer = this.singleRootHtml(`<div class="${baseClass} ${baseClass}--${name}"></div>`)
-    const sliderWrapper = this.singleRootHtml(`<div class="${baseClass}__wrapper"></div>`)
-    const sliderElement = this.singleRootHtml(`<input type="range" min=1 max=1/>`) as HTMLInputElement
-    const textElement = this.singleRootHtml(`<p class="canvas-slider__text"></p>`)
-    const minTextElement = this.singleRootHtml(`<p class="canvas-slider__min-text"></p>`)
-    const maxTextElement = this.singleRootHtml(`<p class="canvas-slider__max-text"></p>`)
-
-    sliderWrapper.appendChild(minTextElement);
-    sliderWrapper.appendChild(sliderElement);
-    sliderWrapper.appendChild(maxTextElement);
-    sliderContainer.appendChild(sliderWrapper);
-    sliderContainer.appendChild(textElement);
-
-    // TODO: Append this properly
-    this.canvasElement.parentElement?.appendChild(sliderContainer);
-
-    sliderElement.addEventListener('input', () => {
-      onChange(parseInt(sliderElement.value));
-    });
-
-    const handle = new class implements SliderHandle {
-      setText(text: string): SliderHandle {
-        textElement.innerHTML = text;
-        return this
-      }
-
-      setValue(value: number): SliderHandle {
-        sliderElement.value = `${value}`;
-        return this;
-      }
-
-      setMinMax(min: number, max: number): SliderHandle {
-        const previousValue = sliderElement.value
-
-        minTextElement.innerHTML = `${min}`;
-        maxTextElement.innerHTML = `${max}`;
-
-        sliderElement.min = `${min}`;
-        sliderElement.max = `${max}`;
-        this.setValue(min);
-
-        const currentValue = sliderElement.value
-
-        // Slider range change caused value change, as value was out of new range
-        if (previousValue != currentValue)
-          onChange(parseInt(currentValue));
-
-        return this;
-      }
-    }
-
-    this.existingSliders[lowerName] = handle;
-    return handle
-  }
-
-  private singleRootHtml(html: string): Element {
-    const template = document.createElement('template');
-    template.innerHTML = html.trim();
-    return template.content.children[0];
   }
 }
