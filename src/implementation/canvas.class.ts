@@ -1,6 +1,4 @@
-import { ButtonHandle } from '../types/controls/button-handle.interface';
 import { CanvasHandle } from '../types/canvas-handle.interface';
-import { SliderHandle } from '../types/controls/slider-handle.interface';
 import { CanvasTypeProvider } from '../types/canvas-type-provider.interface';
 import { CircleImpl } from './drawable/circle-impl.class';
 import { Vector2Impl } from './vector2-impl.class';
@@ -34,6 +32,8 @@ import { COLOR_BLACK } from './style-config-impl.class';
 import { GraphedCurveImpl } from './custom/graphed-curve-impl';
 import { PolygonImpl } from './custom/polygon-impl.class';
 import { ControlRegistry } from '../types/controls/control-registry.interface';
+import { CanvasEventConsumer } from '../types/canvas-event-consumer.interface';
+import { PointerPosition } from '../types/pointer-position.interface';
 
 const provider: CanvasTypeProvider = {
   makeBezierCurve(start, firstControlPoint, secondControlPoint, end, style) {
@@ -145,7 +145,7 @@ const provider: CanvasTypeProvider = {
 
 // TODO: This file could really use some section comments
 
-export class Canvas implements CanvasHandle {
+export class Canvas implements CanvasHandle, CanvasEventConsumer {
 
   private static DEFAULT_MAX_ZOOM_LEVEL = 3;
   private static DEFAULT_MIN_ZOOM_LEVEL = .6;
@@ -154,8 +154,6 @@ export class Canvas implements CanvasHandle {
   private activeFrameTimer: ReturnType<typeof setTimeout> | null = null;
 
   private lastPathLastEndVector: Vector2 | null = null;
-
-  private isMouseInCanvas = false;
   private lastAbsoluteMousePosition = new Vector2Impl(0, 0);
 
   private loadedImageCache: { [key: string]: HTMLImageElement } = {};
@@ -178,12 +176,9 @@ export class Canvas implements CanvasHandle {
     // node, so that - in effect - the node's sharpness increases
     private sharpness: number,
   ) {
-    this.drawing = drawingFactory(provider);
-
+    this.drawing = drawingFactory(this, provider);
     this.renderingContext = this.canvasElement.getContext('2d')!;
-
-    this.registerEvents();
-    this.drawing.onCanvasSetup(this);
+    this.drawing.onCanvasSetup();
   }
 
   getCurrentFrameIndex(): number {
@@ -679,7 +674,7 @@ export class Canvas implements CanvasHandle {
       return;
     }
 
-    const drawables = this.drawing.onFrameDraw(this);
+    const drawables = this.drawing.onFrameDraw();
 
     for (const drawable of drawables)
       this.drawDrawable(drawable);
@@ -687,73 +682,41 @@ export class Canvas implements CanvasHandle {
     // console.log(`Frame ${this.currentlyDrawnFrameId} took ${Date.now() - drawingStart}ms`);
   }
 
-  private registerEvents() {
+  private updateMousePosition(position: PointerPosition) {
+    this.lastAbsoluteMousePosition.x = position.canvasRelativeX;
+    this.lastAbsoluteMousePosition.y = position.canvasRelativeY;
+  }
 
-    const updateAndReturnIsMouseInCanvas = (event: MouseEvent) => {
-      this.isMouseInCanvas = event.target === this.canvasElement;
+  onKeyDown(event: KeyboardEvent): void {
+    this.drawing.onCanvasKeyDown(event);
+  }
 
-      if (this.isMouseInCanvas) {
-        this.lastAbsoluteMousePosition.x = event.offsetX;
-        this.lastAbsoluteMousePosition.y = event.offsetY;
-      }
+  onKeyUp(event: KeyboardEvent): void {
+    this.drawing.onCanvasKeyUp(event);
+  }
 
-      return this.isMouseInCanvas;
-    };
+  onPointerMove(position: PointerPosition): void {
+    this.updateMousePosition(position);
+    this.drawing.onCanvasMouseMove();
+  }
 
-    window.addEventListener('keydown', event => {
-      if (!this.isMouseInCanvas)
-        return;
+  onPointerDown(position: PointerPosition): void {
+    this.updateMousePosition(position);
+    this.drawing.onCanvasMouseDown();
+  }
 
-      this.drawing.onCanvasKeyDown(this, event);
-    });
+  onPointerUp(position: PointerPosition): void {
+    this.updateMousePosition(position);
+    this.drawing.onCanvasMouseUp();
+  }
 
-    window.addEventListener('keyup', event => {
-      if (!this.isMouseInCanvas)
-        return;
+  onZoom(position: PointerPosition, magnitude: number): void {
+    this.updateMousePosition(position);
+    this.drawing.onCanvasZoom(magnitude);
+  }
 
-      this.drawing.onCanvasKeyUp(this, event);
-    });
-
-    this.canvasElement.addEventListener('wheel', event => {
-      if (!updateAndReturnIsMouseInCanvas(event))
-        return;
-
-      // Scrolling and zooming on the canvas should not affect the page
-      event.preventDefault();
-      event.stopImmediatePropagation();
-
-      if (event.ctrlKey) {
-        // Zoom, seems like deltaY is used to represent magnitude and direction
-        this.drawing.onCanvasZoom(this, event.deltaY);
-      } else {
-        // Scroll
-        this.drawing.onCanvasScroll(this, event.deltaX, event.deltaY);
-      }
-    });
-
-    window.addEventListener('mousedown', event => {
-      if (!updateAndReturnIsMouseInCanvas(event))
-        return;
-
-      this.drawing.onCanvasMouseDown(this);
-    });
-
-    window.addEventListener('mouseup', event => {
-      if (!updateAndReturnIsMouseInCanvas(event))
-        return;
-
-      this.drawing.onCanvasMouseUp(this);
-    });
-
-    window.addEventListener('mousemove', event => {
-      if (!updateAndReturnIsMouseInCanvas(event))
-        return;
-
-      this.drawing.onCanvasMouseMove(this);
-    });
-
-    this.canvasElement.addEventListener('unload', () => {
-      this.stop();
-    });
+  onPan(position: PointerPosition, deltaX: number, deltaY: number): void {
+    this.updateMousePosition(position);
+    this.drawing.onCanvasScroll(deltaX, deltaY);
   }
 }

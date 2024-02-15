@@ -1,21 +1,19 @@
-import { CanvasHandle } from './canvas-handle.interface';
-
 export interface CanvasEventHandler {
 
-  onCanvasMouseDown(canvas: CanvasHandle): void;
+  onCanvasMouseDown(): void;
 
-  onCanvasMouseUp(canvas: CanvasHandle): void;
+  onCanvasMouseUp(): void;
 
-  onCanvasMouseMove(canvas: CanvasHandle): void;
+  onCanvasMouseMove(): void;
 
-  onCanvasKeyDown(canvas: CanvasHandle, keyEvent: KeyboardEvent): void;
+  onCanvasKeyDown(keyEvent: KeyboardEvent): void;
 
-  onCanvasKeyUp(canvas: CanvasHandle, keyEvent: KeyboardEvent): void;
+  onCanvasKeyUp(keyEvent: KeyboardEvent): void;
 
-  onCanvasZoom(canvas: CanvasHandle, delta: number): void;
+  onCanvasZoom(delta: number): void;
 
-  onCanvasScroll(canvas: CanvasHandle, deltaX: number, deltaY: number): void;
+  onCanvasScroll(deltaX: number, deltaY: number): void;
 
-  onCanvasSetup(canvas: CanvasHandle): void;
+  onCanvasSetup(): void;
 
 }
