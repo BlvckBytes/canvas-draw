@@ -8,4 +8,7 @@ export interface CanvasEventConsumer {
   onPointerUp(position: PointerPosition): void;
   onZoom(position: PointerPosition, magnitude: number): void;
   onPan(position: PointerPosition, deltaX: number, deltaY: number): void;
+
+  onCanvasResize(): void;
+  onCSSVariableChange(names: string[]): void;
 }

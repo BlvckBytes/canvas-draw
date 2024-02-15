@@ -12,8 +12,8 @@ import { Rectangle } from '../types/drawable/rectangle.interface';
 import { Ellipse } from '../types/drawable/ellipse.interface';
 import { Circle } from '../types/drawable/circle.interface';
 import { DrawnImage } from '../types/drawable/drawn-image.interface';
-import { CustomPath } from '../types/drawable/custom-path.interface';
-import { Typography } from '../types/drawable/typography.interface';
+import { CustomPath, CustomPathMember } from '../types/drawable/custom-path.interface';
+import { TextAlignment, TextBaseline, Typography } from '../types/drawable/typography.interface';
 import { LineImpl } from './drawable/line-impl.class';
 import { BezierCurveImpl } from './drawable/bezier-curve-impl.class';
 import { QuadraticCurveImpl } from './drawable/quadratic-curve-impl.class';
@@ -28,130 +28,24 @@ import { ColorSupplier } from '../types/color-supplier.interface';
 import { CoordinateSystemImpl } from './custom/coordinate-system-impl.class';
 import { CircleSliceImpl } from './custom/circle-slice-impl.class';
 import { DrawingFactory } from '../types/drawing-factory.type';
-import { COLOR_BLACK } from './style-config-impl.class';
 import { GraphedCurveImpl } from './custom/graphed-curve-impl';
-import { PolygonImpl } from './custom/polygon-impl.class';
+import { PolygonImpl, VertexCallback } from './custom/polygon-impl.class';
 import { ControlRegistry } from '../types/controls/control-registry.interface';
 import { CanvasEventConsumer } from '../types/canvas-event-consumer.interface';
 import { PointerPosition } from '../types/pointer-position.interface';
+import { Color } from '../types/color.interface';
+import { CoordinateSystem } from '../types/custom/coordinate-system.interface';
+import { GraphedCurve } from '../types/custom/graphed-curve.interface';
+import { Polygon } from '../types/custom/polygon.interface';
+import { CssColorSupplier } from './css-color-supplier.class';
 
-const provider: CanvasTypeProvider = {
-  makeBezierCurve(start, firstControlPoint, secondControlPoint, end, style) {
-    return new BezierCurveImpl(start, firstControlPoint, secondControlPoint, end, style);
-  },
-  makeCircle(origin, radius, startAngle, endAngle, style) {
-    return new CircleImpl(origin, radius, startAngle, endAngle, style);
-  },
-  makeCustomPath(members, style) {
-    return new CustomPathImpl(members, style);
-  },
-  makeDrawnImage(origin, source, width, height, centerRotationOrigin, style) {
-    return new DrawnImageImpl(origin, source, width, height, centerRotationOrigin, style);
-  },
-  makeEllipse(origin, radiusX, radiusY, startAngle, endAngle, style) {
-    return new EllipseImpl(origin, radiusX, radiusY, startAngle, endAngle, style);
-  },
-  makeLine(start, end, style) {
-    return new LineImpl(start, end, style);
-  },
-  makeQuadraticCurve(start, controlPoint, end, style) {
-    return new QuadraticCurveImpl(start, controlPoint, end, style);
-  },
-  makeTypography(location, text, fontFamily, fontSize, alignment, baseline, style) {
-    return new TypographyImpl(location, text, fontFamily, fontSize, alignment, baseline, style);
-  },
-  makeGraphedCurve(origin, curveColor, curve, xStart, xEnd, stepSize) {
-    return new GraphedCurveImpl(origin, curveColor, curve, xStart, xEnd, stepSize);
-  },
-  makePolygon(numberOfEdges, radius, origin, vertexCallback, style) {
-    return new PolygonImpl(numberOfEdges, radius, origin, vertexCallback, style);
-  },
-  makeVector2(x, y) {
-    return new Vector2Impl(x, y);
-  },
-  makeCoordinateSystem(width, height, origin, xStepSize, yStepSize, axisColor, gridColor) {
-    return new CoordinateSystemImpl(width, height, origin, xStepSize, yStepSize, axisColor, gridColor);
-  },
-  makeRectangle(origin, width, height, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius) {
-    return new RectangleImpl(origin, width, height, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius);
-  },
-  makeCircleSlice(origin, radius, angle, angleOffset, style) {
-    return CircleSliceImpl.make(origin, radius, angle, angleOffset, style);
-  },
-  makeCssColorSupplier(variableName, fallbackColor) {
-    return {
-      get() {
-        const colorValue = getComputedStyle(document.body).getPropertyValue(variableName);
-
-        if (colorValue == "") {
-          console.error(`Missing color variable: ${variableName}`);
-          return fallbackColor || COLOR_BLACK;
-        }
-
-        if (colorValue.startsWith('#')) {
-          if (colorValue.length != 7) {
-            console.error(`Invalid color variable hex color value: ${variableName}=${colorValue}`);
-            return fallbackColor || COLOR_BLACK;
-          }
-      
-          const red = parseInt(colorValue.substring(1, 1+2), 16);
-          const green = parseInt(colorValue.substring(1+2, 1+2+2), 16);
-          const blue = parseInt(colorValue.substring(1+2+2, 1+2+2+2), 16);
-      
-          if (Number.isNaN(red) || Number.isNaN(green) || Number.isNaN(blue)) {
-            console.error(`Invalid color variable hex color value: ${variableName}=${colorValue}`);
-            return fallbackColor || COLOR_BLACK;
-          }
-      
-          return { r: red, g: green, b: blue, a: 1 };
-        } else if (
-          colorValue.startsWith('rgb') ||
-          colorValue.startsWith('rgba')
-        ) {
-          const beginIndex = colorValue.indexOf('(');
-          const endIndex = colorValue.indexOf(')');
-
-          if (beginIndex < 0 || endIndex < 0) {
-            console.error(`Invalid color variable rgb/rgba color value: ${variableName}=${colorValue}`);
-            return fallbackColor || COLOR_BLACK;
-          }
-
-          const colorData = colorValue.substring(beginIndex + 1, endIndex).split(',');
-
-          if (colorData.length < 3) {
-            console.error(`Invalid color variable rgb/rgba color value: ${variableName}=${colorValue}`);
-            return fallbackColor || COLOR_BLACK;
-          }
-
-          const red = parseInt(colorData[0].trim());
-          const green = parseInt(colorData[1].trim());
-          const blue = parseInt(colorData[2].trim());
-          const alpha = colorData.length == 4 ? parseFloat(colorData[3].trim()) : 1;
-
-          if (Number.isNaN(red) || Number.isNaN(green) || Number.isNaN(blue) || Number.isNaN(alpha)) {
-            console.error(`Invalid color variable hex color value: ${variableName}=${colorValue}`);
-            return fallbackColor || COLOR_BLACK;
-          }
-
-          return { r: red, g: green, b: blue, a: alpha };
-        } else {
-          console.error(`Invalid/Unsupported color variable value: ${variableName}=${colorValue}`);
-          return fallbackColor || COLOR_BLACK;
-        }
-      }
-    } as ColorSupplier
-  },
-};
-
-// TODO: This file could really use some section comments
-
-export class Canvas implements CanvasHandle, CanvasEventConsumer {
+export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProvider {
 
   private static DEFAULT_MAX_ZOOM_LEVEL = 3;
   private static DEFAULT_MIN_ZOOM_LEVEL = .6;
 
   private currentlyDrawnFrameId: number | null = null;
-  private activeFrameTimer: ReturnType<typeof setTimeout> | null = null;
+  private activeFrameTimer: ReturnType<typeof setInterval> | null = null;
 
   private lastPathLastEndVector: Vector2 | null = null;
   private lastAbsoluteMousePosition = new Vector2Impl(0, 0);
@@ -166,6 +60,8 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
   private minZoomLevel = Canvas.DEFAULT_MIN_ZOOM_LEVEL;
   private maxZoomLevel = Canvas.DEFAULT_MAX_ZOOM_LEVEL;
 
+  private cssColorSupplierByVariableName: { [key: string]: CssColorSupplier } = {};
+
   constructor(
     public controlRegistry: ControlRegistry,
     drawingFactory: DrawingFactory,
@@ -176,13 +72,28 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
     // node, so that - in effect - the node's sharpness increases
     private sharpness: number,
   ) {
-    this.drawing = drawingFactory(this, provider);
+    this.drawing = drawingFactory(this, this);
     this.renderingContext = this.canvasElement.getContext('2d')!;
     this.drawing.onCanvasSetup();
   }
 
+  // --------------------------------------------------------------------------------
+  // Canvas Handle
+  // --------------------------------------------------------------------------------
+
+  draw(increaseFrameId: boolean): void {
+    this.nextFrame(increaseFrameId);
+  }
+
   getCurrentFrameIndex(): number {
     return this.currentlyDrawnFrameId || -1;
+  }
+
+  getLastMousePosition(): Vector2 {
+    return this.lastAbsoluteMousePosition
+      .copy()
+      .divide(this.scalingFactor)
+      .divide(this.zoomLevel)
   }
 
   setZoomLevel(amount: number): number {
@@ -206,16 +117,9 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
     this.setZoomLevel(this.getZoomLevel());
   }
 
-  getLastMousePosition(): Vector2 {
-    return this.lastAbsoluteMousePosition
-      .copy()
-      .divide(this.scalingFactor)
-      .divide(this.zoomLevel)
-  }
-
-  draw(increaseFrameId: boolean): void {
-    this.nextFrame(increaseFrameId);
-  }
+  // --------------------------------------------------------------------------------
+  // Canvas
+  // --------------------------------------------------------------------------------
 
   start(): boolean {
     if (this.activeFrameTimer != null)
@@ -267,6 +171,10 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
     this.clearCanvas();
   }
 
+  // --------------------------------------------------------------------------------
+  // Drawing
+  // --------------------------------------------------------------------------------
+
   private clearCanvas() {
     this.renderingContext.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
   }
@@ -292,7 +200,7 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
     }
   }
 
-  public makeColorString(supplier: ColorSupplier): string {
+  private makeColorString(supplier: ColorSupplier): string {
     const color = supplier.get();
     return `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
   }
@@ -682,10 +590,9 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
     // console.log(`Frame ${this.currentlyDrawnFrameId} took ${Date.now() - drawingStart}ms`);
   }
 
-  private updateMousePosition(position: PointerPosition) {
-    this.lastAbsoluteMousePosition.x = position.canvasRelativeX;
-    this.lastAbsoluteMousePosition.y = position.canvasRelativeY;
-  }
+  // --------------------------------------------------------------------------------
+  // Event Consumer
+  // --------------------------------------------------------------------------------
 
   onKeyDown(event: KeyboardEvent): void {
     this.drawing.onCanvasKeyDown(event);
@@ -718,5 +625,99 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer {
   onPan(position: PointerPosition, deltaX: number, deltaY: number): void {
     this.updateMousePosition(position);
     this.drawing.onCanvasScroll(deltaX, deltaY);
+  }
+
+  onCanvasResize(): void {
+    // TODO: Implement resizing
+  }
+
+  onCSSVariableChange(names: string[]): void {
+    let isAffected = false;
+
+    for (const changedName of names) {
+      if (changedName in this.cssColorSupplierByVariableName) {
+        this.cssColorSupplierByVariableName[changedName].invalidateCache();
+        isAffected = true;
+      }
+    }
+
+    if (!isAffected)
+      return;
+
+    this.draw(false);
+  }
+
+  private updateMousePosition(position: PointerPosition) {
+    this.lastAbsoluteMousePosition.x = position.canvasRelativeX;
+    this.lastAbsoluteMousePosition.y = position.canvasRelativeY;
+  }
+
+  // --------------------------------------------------------------------------------
+  // Type Provider
+  // --------------------------------------------------------------------------------
+
+  makeBezierCurve(start: Vector2, firstControlPoint: Vector2, secondControlPoint: Vector2, end: Vector2, style?: StyleConfig | undefined): BezierCurve {
+    return new BezierCurveImpl(start, firstControlPoint, secondControlPoint, end, style);
+  }
+
+  makeCircle(origin: Vector2, radius: number, startAngle?: number | undefined, endAngle?: number | undefined, style?: StyleConfig | undefined): Circle {
+    return new CircleImpl(origin, radius, startAngle, endAngle, style);
+  }
+
+  makeCustomPath(members: CustomPathMember[], style?: StyleConfig | undefined): CustomPath {
+    return new CustomPathImpl(members, style);
+  }
+
+  makeDrawnImage(origin: Vector2, source: string, width?: number | null | undefined, height?: number | null | undefined, centerRotationOrigin?: boolean | undefined, style?: StyleConfig | undefined): DrawnImage {
+    return new DrawnImageImpl(origin, source, width, height, centerRotationOrigin, style);
+  }
+
+  makeEllipse(origin: Vector2, radiusX: number, radiusY: number, startAngle?: number | undefined, endAngle?: number | undefined, style?: StyleConfig | undefined): Ellipse {
+    return new EllipseImpl(origin, radiusX, radiusY, startAngle, endAngle, style);
+  }
+
+  makeLine(start: Vector2, end: Vector2, style?: StyleConfig | undefined): Line {
+    return new LineImpl(start, end, style);
+  }
+
+  makeQuadraticCurve(start: Vector2, controlPoint: Vector2, end: Vector2, style?: StyleConfig | undefined): QuadraticCurve {
+    return new QuadraticCurveImpl(start, controlPoint, end, style);
+  }
+
+  makeRectangle(origin: Vector2, width: number, height: number, topLeftRadius?: number | undefined, topRightRadius?: number | undefined, bottomLeftRadius?: number | undefined, bottomRightRadius?: number | undefined): Rectangle {
+    return new RectangleImpl(origin, width, height, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius);
+  }
+
+  makeTypography(location: Vector2, text: string, fontFamily?: string | undefined, fontSize?: number | undefined, alignment?: TextAlignment | undefined, baseline?: TextBaseline | undefined, style?: StyleConfig | undefined): Typography {
+    return new TypographyImpl(location, text, fontFamily, fontSize, alignment, baseline, style);
+  }
+
+  makeCoordinateSystem(width: number, height: number, origin: Vector2, xStepSize?: number | undefined, yStepSize?: number | undefined, axisColor?: ColorSupplier | null | undefined, gridColor?: ColorSupplier | null | undefined): CoordinateSystem {
+    return new CoordinateSystemImpl(width, height, origin, xStepSize, yStepSize, axisColor, gridColor);
+  }
+
+  makeCircleSlice(origin: Vector2, radius: number, angle: number, angleOffset?: number | undefined, style?: StyleConfig | undefined): CustomPath {
+    return CircleSliceImpl.make(origin, radius, angle, angleOffset, style);
+  }
+
+  makeGraphedCurve(origin: Vector2, curveColor: ColorSupplier, curve: (x: number) => number, xStart?: number | undefined, xEnd?: number | undefined, stepSize?: number | undefined): GraphedCurve {
+    return new GraphedCurveImpl(origin, curveColor, curve, xStart, xEnd, stepSize);
+  }
+
+  makePolygon(numberOfEdges: number, radius: number, origin: Vector2, vertexCallback?: VertexCallback | null | undefined, style?: StyleConfig | undefined): Polygon {
+    return new PolygonImpl(numberOfEdges, radius, origin, vertexCallback, style);
+  }
+
+  makeVector2(x: number, y: number): Vector2 {
+    return new Vector2Impl(x, y);
+  }
+
+  makeCssColorSupplier(variableName: string, fallbackColor?: Color | undefined): ColorSupplier {
+    if (variableName in this.cssColorSupplierByVariableName)
+      return this.cssColorSupplierByVariableName[variableName];
+
+    const supplier = new CssColorSupplier(this.canvasElement, variableName, fallbackColor);
+    this.cssColorSupplierByVariableName[variableName] = supplier;
+    return supplier;
   }
 }

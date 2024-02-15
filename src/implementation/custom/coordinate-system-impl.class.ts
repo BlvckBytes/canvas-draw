@@ -3,7 +3,7 @@ import { Drawable } from '../../types/drawable/drawable.type';
 import { DrawableComposite } from '../../types/drawable/drawable-composite.interface';
 import { Vector2 } from '../../types/vector2.interface';
 import { LineImpl } from '../drawable/line-impl.class';
-import { COLOR_BLACK } from '../style-config-impl.class';
+import { COLOR_BLACK_SUPPLIER } from '../style-config-impl.class';
 import { Vector2Impl } from '../vector2-impl.class';
 
 export class CoordinateSystemImpl implements DrawableComposite {
@@ -15,8 +15,8 @@ export class CoordinateSystemImpl implements DrawableComposite {
 
   public xStepSize = 1;
   public yStepSize = 1;
-  public axisColor: ColorSupplier | null = COLOR_BLACK;
-  public gridColor: ColorSupplier | null = COLOR_BLACK;
+  public axisColor: ColorSupplier | null = COLOR_BLACK_SUPPLIER;
+  public gridColor: ColorSupplier | null = COLOR_BLACK_SUPPLIER;
 
   constructor(
     public width: number,
