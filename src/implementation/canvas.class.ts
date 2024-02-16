@@ -43,9 +43,11 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
 
   private static DEFAULT_MAX_ZOOM_LEVEL = 3;
   private static DEFAULT_MIN_ZOOM_LEVEL = .6;
+  private static RESIZE_REDRAW_DEBOUNCE_MS = 100;
 
   private currentlyDrawnFrameId: number | null = null;
   private activeFrameTimer: ReturnType<typeof setInterval> | null = null;
+  private resizeRedrawDebounceTask: ReturnType<typeof setTimeout> | null = null;
 
   private lastPathLastEndVector: Vector2 | null = null;
   private lastAbsoluteMousePosition = new Vector2Impl(0, 0);
@@ -569,11 +571,17 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
     // const drawingStart = Date.now();
 
     // Scale the canvas element as well as it's DOM node before drawing
-    const maxBounds = this.drawing.getMaxBounds();
-    this.canvasElement.width = this.scaleForCanvas(maxBounds[0], false);
-    this.canvasElement.height = this.scaleForCanvas(maxBounds[1], false);
-    this.canvasElement.style.width = (this.canvasElement.width / this.sharpness) + 'px';
-    this.canvasElement.style.height = (this.canvasElement.height / this.sharpness) + 'px';
+    // The width of the canvas is always determined by the canvas element, while
+    // the height is calculated as a function of it's width, based on the bounds aspect ratio
+
+    const [boundsWidth, boundsHeight] = this.drawing.getMaxBounds();
+    const boundsAspectRatio = boundsWidth / boundsHeight;
+    const canvasStyleWidth = this.canvasElement.getBoundingClientRect().width;
+    const canvasStyleHeight = canvasStyleWidth * boundsAspectRatio;
+
+    this.canvasElement.style.height = canvasStyleHeight + 'px';
+    this.canvasElement.width = canvasStyleWidth * this.sharpness;
+    this.canvasElement.height = canvasStyleHeight * this.sharpness;
 
     this.clearCanvas();
 
@@ -582,7 +590,10 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
       return;
     }
 
-    const drawables = this.drawing.onFrameDraw();
+    const drawables = this.drawing.onFrameDraw(
+      canvasStyleWidth / this.scalingFactor,
+      canvasStyleHeight / this.scalingFactor,
+    );
 
     for (const drawable of drawables)
       this.drawDrawable(drawable);
@@ -628,7 +639,10 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
   }
 
   onCanvasResize(): void {
-    // TODO: Implement resizing
+    if (this.resizeRedrawDebounceTask != null)
+      clearTimeout(this.resizeRedrawDebounceTask);
+
+    this.resizeRedrawDebounceTask = setTimeout(() => this.draw(false), Canvas.RESIZE_REDRAW_DEBOUNCE_MS);
   }
 
   onCSSVariableChange(names: string[]): void {

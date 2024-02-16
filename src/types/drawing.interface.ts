@@ -3,7 +3,7 @@ import { Drawable } from './drawable/drawable.type';
 
 export interface Drawing extends CanvasEventHandler {
 
-  onFrameDraw(): Drawable[];
+  onFrameDraw(width: number, height: number): Drawable[];
 
   getTimeMsPerFrame(): number | null;
 
