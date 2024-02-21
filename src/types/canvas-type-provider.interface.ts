@@ -16,6 +16,86 @@ import { TextAlignment, TextBaseline, Typography } from './drawable/typography.i
 import { StyleConfig } from './style-config.interface';
 import { Vector2 } from './vector2.interface';
 
+export interface StylableOptions {
+  style?: StyleConfig;
+}
+
+// ------------------------------------------------------------
+// Drawable
+// ------------------------------------------------------------
+
+export interface CircleOptions extends StylableOptions {
+  startAngle?: number;
+  endAngle?: number;
+}
+
+export interface DrawnImageOptions extends StylableOptions {
+  width?: number | null;
+  height?: number | null;
+  centerRotationOrigin?: boolean;
+  applyScaling?: boolean;
+}
+
+export interface EllipseOptions extends StylableOptions {
+  startAngle?: number;
+  endAngle?: number;
+}
+
+export interface RectangleOptions extends StylableOptions {
+  topLeftRadius?: number;
+  topRightRadius?: number;
+  bottomLeftRadius?: number;
+  bottomRightRadius?: number;
+}
+
+export interface TypographyOptions extends StylableOptions {
+  fontFamily?: string;
+  fontSize?: number;
+  alignment?: TextAlignment;
+  baseline?: TextBaseline;
+}
+
+// ------------------------------------------------------------
+// Custom
+// ------------------------------------------------------------
+
+export interface CoordinateSystemOptions {
+  xStepSize?: number;
+  yStepSize?: number;
+  axisColor?: ColorSupplier | null;
+  gridColor?: ColorSupplier | null;
+}
+
+export interface CircleSliceOptions extends StylableOptions {
+  angleOffset?: number;
+}
+
+export interface GraphedCurveOptions {
+  xStart?: number;
+  xEnd?: number;
+  stepSize?: number;
+}
+
+export interface PolygonOptions extends StylableOptions {
+  vertexCallback?: VertexCallback | null;
+}
+
+// ------------------------------------------------------------
+// Miscellaneous
+// ------------------------------------------------------------
+
+export interface TexRendererOptions {
+  color?: string | null;
+  backgroundColor?: string | null;
+  fontSize?: number | null;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+}
+
+export interface TexDrawnImageOptions extends TexRendererOptions, DrawnImageOptions {}
+
 export interface CanvasTypeProvider {
 
   // ------------------------------------------------------------
@@ -27,71 +107,57 @@ export interface CanvasTypeProvider {
     firstControlPoint: Vector2,
     secondControlPoint: Vector2,
     end: Vector2,
-    style?: StyleConfig,
+    options?: StylableOptions,
   ): BezierCurve;
 
   makeCircle(
     origin: Vector2,
     radius: number,
-    startAngle?: number,
-    endAngle?: number,
-    style?: StyleConfig,
+    options?: CircleOptions,
   ): Circle;
 
   makeCustomPath(
     members: CustomPathMember[],
-    style?: StyleConfig,
+    options?: StylableOptions,
   ): CustomPath;
 
   makeDrawnImage(
     origin: Vector2,
     source: string,
-    width?: number | null,
-    height?: number | null,
-    centerRotationOrigin?: boolean,
-    style?: StyleConfig,
+    options?: DrawnImageOptions,
   ): DrawnImage;
 
   makeEllipse(
     origin: Vector2,
     radiusX: number,
     radiusY: number,
-    startAngle?: number,
-    endAngle?: number,
-    style?: StyleConfig,
+    options?: EllipseOptions,
   ): Ellipse;
 
   makeLine(
     start: Vector2,
     end: Vector2,
-    style?: StyleConfig,
+    options?: StylableOptions,
   ): Line;
 
   makeQuadraticCurve(
     start: Vector2,
     controlPoint: Vector2,
     end: Vector2,
-    style?: StyleConfig,
+    options?: StylableOptions,
   ): QuadraticCurve;
 
   makeRectangle(
     origin: Vector2,
     width: number,
     height: number,
-    topLeftRadius?: number,
-    topRightRadius?: number,
-    bottomLeftRadius?: number,
-    bottomRightRadius?: number,
+    options?: RectangleOptions,
   ): Rectangle;
 
   makeTypography(
     location: Vector2,
     text: string,
-    fontFamily?: string,
-    fontSize?: number,
-    alignment?: TextAlignment,
-    baseline?: TextBaseline,
-    style?: StyleConfig,
+    options?: TypographyOptions,
   ): Typography;
 
   // ------------------------------------------------------------
@@ -102,35 +168,28 @@ export interface CanvasTypeProvider {
     width: number,
     height: number,
     origin: Vector2,
-    xStepSize?: number,
-    yStepSize?: number,
-    axisColor?: ColorSupplier | null,
-    gridColor?: ColorSupplier | null,
+    options?: CoordinateSystemOptions,
   ): CoordinateSystem;
 
   makeCircleSlice(
     origin: Vector2,
     radius: number,
     angle: number,
-    angleOffset?: number,
-    style?: StyleConfig,
+    options?: CircleSliceOptions,
   ): CustomPath;
 
   makeGraphedCurve(
     origin: Vector2,
     curveColor: ColorSupplier,
     curve: (x: number) => number,
-    xStart?: number,
-    xEnd?: number,
-    stepSize?: number,
+    options?: GraphedCurveOptions,
   ): GraphedCurve;
 
   makePolygon(
     numberOfEdges: number,
     radius: number,
     origin: Vector2,
-    vertexCallback?: VertexCallback | null,
-    style?: StyleConfig,
+    options?: PolygonOptions,
   ): Polygon;
 
   // ------------------------------------------------------------
@@ -143,4 +202,10 @@ export interface CanvasTypeProvider {
     variableName: string,
     fallbackColor?: Color,
   ): ColorSupplier;
+
+  makeTexDrawnImage(
+    expression: string,
+    origin: Vector2,
+    options?: TexDrawnImageOptions,
+  ): DrawnImage;
 }

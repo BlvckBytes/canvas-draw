@@ -1,5 +1,5 @@
 import { CanvasHandle } from '../types/canvas-handle.interface';
-import { CanvasTypeProvider } from '../types/canvas-type-provider.interface';
+import { CanvasTypeProvider, CircleOptions, CircleSliceOptions, CoordinateSystemOptions, DrawnImageOptions, EllipseOptions, GraphedCurveOptions, PolygonOptions, RectangleOptions, StylableOptions, TexDrawnImageOptions, TypographyOptions } from '../types/canvas-type-provider.interface';
 import { CircleImpl } from './drawable/circle-impl.class';
 import { Vector2Impl } from './vector2-impl.class';
 import { Vector2 } from '../types/vector2.interface';
@@ -13,7 +13,7 @@ import { Ellipse } from '../types/drawable/ellipse.interface';
 import { Circle } from '../types/drawable/circle.interface';
 import { DrawnImage } from '../types/drawable/drawn-image.interface';
 import { CustomPath, CustomPathMember } from '../types/drawable/custom-path.interface';
-import { TextAlignment, TextBaseline, Typography } from '../types/drawable/typography.interface';
+import { Typography } from '../types/drawable/typography.interface';
 import { LineImpl } from './drawable/line-impl.class';
 import { BezierCurveImpl } from './drawable/bezier-curve-impl.class';
 import { QuadraticCurveImpl } from './drawable/quadratic-curve-impl.class';
@@ -29,7 +29,7 @@ import { CoordinateSystemImpl } from './custom/coordinate-system-impl.class';
 import { CircleSliceImpl } from './custom/circle-slice-impl.class';
 import { DrawingFactory } from '../types/drawing-factory.type';
 import { GraphedCurveImpl } from './custom/graphed-curve-impl';
-import { PolygonImpl, VertexCallback } from './custom/polygon-impl.class';
+import { PolygonImpl } from './custom/polygon-impl.class';
 import { ControlRegistry } from '../types/controls/control-registry.interface';
 import { CanvasEventConsumer } from '../types/canvas-event-consumer.interface';
 import { PointerPosition } from '../types/pointer-position.interface';
@@ -38,6 +38,7 @@ import { CoordinateSystem } from '../types/custom/coordinate-system.interface';
 import { GraphedCurve } from '../types/custom/graphed-curve.interface';
 import { Polygon } from '../types/custom/polygon.interface';
 import { CssColorSupplier } from './css-color-supplier.class';
+import { TexRenderer } from '../types/tex-renderer.interface';
 
 export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProvider {
 
@@ -67,6 +68,7 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
   constructor(
     public controlRegistry: ControlRegistry,
     drawingFactory: DrawingFactory,
+    private texRenderer: TexRenderer,
     private canvasElement: HTMLCanvasElement,
     // By how much to scale coordinates, determines the real size of one unit
     private scalingFactor: number,
@@ -225,8 +227,8 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
     return !doNotMoveAgain;
   }
 
-  private scaleForCanvas(coordinate: number, applyZoomLevel = true) {
-    return coordinate * this.scalingFactor * this.sharpness * (applyZoomLevel ? this.zoomLevel : 1);
+  private scaleForCanvas(coordinate: number, applyZoomLevel = true, applyScaling = true) {
+    return coordinate * (applyScaling ? this.scalingFactor : 1) * this.sharpness * (applyZoomLevel ? this.zoomLevel : 1);
   }
 
   private unscaleFromCanvas(coordinate: number) {
@@ -377,25 +379,25 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
       const imageAspectRatio = htmlImage.width / htmlImage.height;
 
       if (image.width !== null && image.height === null) {
-        const scaledWidth = this.scaleForCanvas(image.width);
+        const scaledWidth = this.scaleForCanvas(image.width, true, image.applyScaling);
         finalWidth = scaledWidth;
         finalHeight = finalWidth / imageAspectRatio;
       }
 
       else if (image.width === null && image.height !== null) {
-        const scaledHeight = this.scaleForCanvas(image.height);
+        const scaledHeight = this.scaleForCanvas(image.height, true, image.applyScaling);
         finalHeight = scaledHeight;
         finalWidth = finalHeight * imageAspectRatio;
       }
 
       else if (image.width !== null && image.height !== null) {
-        finalWidth = this.scaleForCanvas(image.width);
-        finalHeight = this.scaleForCanvas(image.height);
+        finalWidth = this.scaleForCanvas(image.width, true, image.applyScaling);
+        finalHeight = this.scaleForCanvas(image.height, true, image.applyScaling);
       }
 
       else {
-        finalWidth = htmlImage.width;
-        finalHeight = htmlImage.height;
+        finalWidth = this.scaleForCanvas(htmlImage.width, true, image.applyScaling);
+        finalHeight = this.scaleForCanvas(htmlImage.height, true, image.applyScaling);
       }
 
       if (image.centerRotationOrigin && image.style.rotationOrigin) {
@@ -670,56 +672,56 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
   // Type Provider
   // --------------------------------------------------------------------------------
 
-  makeBezierCurve(start: Vector2, firstControlPoint: Vector2, secondControlPoint: Vector2, end: Vector2, style?: StyleConfig | undefined): BezierCurve {
-    return new BezierCurveImpl(start, firstControlPoint, secondControlPoint, end, style);
+  makeBezierCurve(start: Vector2, firstControlPoint: Vector2, secondControlPoint: Vector2, end: Vector2, options?: StylableOptions | undefined): BezierCurve {
+    return new BezierCurveImpl(start, firstControlPoint, secondControlPoint, end, options?.style);
   }
 
-  makeCircle(origin: Vector2, radius: number, startAngle?: number | undefined, endAngle?: number | undefined, style?: StyleConfig | undefined): Circle {
-    return new CircleImpl(origin, radius, startAngle, endAngle, style);
+  makeCircle(origin: Vector2, radius: number, options?: CircleOptions | undefined): Circle {
+    return new CircleImpl(origin, radius, options?.startAngle, options?.endAngle, options?.style);
   }
 
-  makeCustomPath(members: CustomPathMember[], style?: StyleConfig | undefined): CustomPath {
-    return new CustomPathImpl(members, style);
+  makeCustomPath(members: CustomPathMember[], options?: StylableOptions | undefined): CustomPath {
+    return new CustomPathImpl(members, options?.style);
   }
 
-  makeDrawnImage(origin: Vector2, source: string, width?: number | null | undefined, height?: number | null | undefined, centerRotationOrigin?: boolean | undefined, style?: StyleConfig | undefined): DrawnImage {
-    return new DrawnImageImpl(origin, source, width, height, centerRotationOrigin, style);
+  makeDrawnImage(origin: Vector2, source: string, options?: DrawnImageOptions | undefined): DrawnImage {
+    return new DrawnImageImpl(origin, source, options?.width, options?.height, options?.centerRotationOrigin, options?.applyScaling, options?.style);
   }
 
-  makeEllipse(origin: Vector2, radiusX: number, radiusY: number, startAngle?: number | undefined, endAngle?: number | undefined, style?: StyleConfig | undefined): Ellipse {
-    return new EllipseImpl(origin, radiusX, radiusY, startAngle, endAngle, style);
+  makeEllipse(origin: Vector2, radiusX: number, radiusY: number, options?: EllipseOptions | undefined): Ellipse {
+    return new EllipseImpl(origin, radiusX, radiusX, options?.startAngle, options?.endAngle, options?.style);
   }
 
-  makeLine(start: Vector2, end: Vector2, style?: StyleConfig | undefined): Line {
-    return new LineImpl(start, end, style);
+  makeLine(start: Vector2, end: Vector2, options?: StylableOptions | undefined): Line {
+    return new LineImpl(start, end, options?.style);
   }
 
-  makeQuadraticCurve(start: Vector2, controlPoint: Vector2, end: Vector2, style?: StyleConfig | undefined): QuadraticCurve {
-    return new QuadraticCurveImpl(start, controlPoint, end, style);
+  makeQuadraticCurve(start: Vector2, controlPoint: Vector2, end: Vector2, options?: StylableOptions | undefined): QuadraticCurve {
+    return new QuadraticCurveImpl(start, controlPoint, end, options?.style);
   }
 
-  makeRectangle(origin: Vector2, width: number, height: number, topLeftRadius?: number | undefined, topRightRadius?: number | undefined, bottomLeftRadius?: number | undefined, bottomRightRadius?: number | undefined): Rectangle {
-    return new RectangleImpl(origin, width, height, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius);
+  makeRectangle(origin: Vector2, width: number, height: number, options?: RectangleOptions | undefined): Rectangle {
+    return new RectangleImpl(origin, width, height, options?.topLeftRadius, options?.bottomRightRadius, options?.bottomLeftRadius, options?.bottomRightRadius, options?.style);
   }
 
-  makeTypography(location: Vector2, text: string, fontFamily?: string | undefined, fontSize?: number | undefined, alignment?: TextAlignment | undefined, baseline?: TextBaseline | undefined, style?: StyleConfig | undefined): Typography {
-    return new TypographyImpl(location, text, fontFamily, fontSize, alignment, baseline, style);
+  makeTypography(location: Vector2, text: string, options?: TypographyOptions | undefined): Typography {
+    return new TypographyImpl(location, text, options?.fontFamily, options?.fontSize, options?.alignment, options?.baseline, options?.style);
   }
 
-  makeCoordinateSystem(width: number, height: number, origin: Vector2, xStepSize?: number | undefined, yStepSize?: number | undefined, axisColor?: ColorSupplier | null | undefined, gridColor?: ColorSupplier | null | undefined): CoordinateSystem {
-    return new CoordinateSystemImpl(width, height, origin, xStepSize, yStepSize, axisColor, gridColor);
+  makeCoordinateSystem(width: number, height: number, origin: Vector2, options?: CoordinateSystemOptions | undefined): CoordinateSystem {
+    return new CoordinateSystemImpl(width, height, origin, options?.xStepSize, options?.yStepSize, options?.axisColor, options?.gridColor);
   }
 
-  makeCircleSlice(origin: Vector2, radius: number, angle: number, angleOffset?: number | undefined, style?: StyleConfig | undefined): CustomPath {
-    return CircleSliceImpl.make(origin, radius, angle, angleOffset, style);
+  makeCircleSlice(origin: Vector2, radius: number, angle: number, options?: CircleSliceOptions | undefined): CustomPath {
+    return CircleSliceImpl.make(origin, radius, angle, options?.angleOffset, options?.style);
   }
 
-  makeGraphedCurve(origin: Vector2, curveColor: ColorSupplier, curve: (x: number) => number, xStart?: number | undefined, xEnd?: number | undefined, stepSize?: number | undefined): GraphedCurve {
-    return new GraphedCurveImpl(origin, curveColor, curve, xStart, xEnd, stepSize);
+  makeGraphedCurve(origin: Vector2, curveColor: ColorSupplier, curve: (x: number) => number, options?: GraphedCurveOptions | undefined): GraphedCurve {
+    return new GraphedCurveImpl(origin, curveColor, curve, options?.xStart, options?.xEnd, options?.stepSize);
   }
 
-  makePolygon(numberOfEdges: number, radius: number, origin: Vector2, vertexCallback?: VertexCallback | null | undefined, style?: StyleConfig | undefined): Polygon {
-    return new PolygonImpl(numberOfEdges, radius, origin, vertexCallback, style);
+  makePolygon(numberOfEdges: number, radius: number, origin: Vector2, options?: PolygonOptions | undefined): Polygon {
+    return new PolygonImpl(numberOfEdges, radius, origin, options?.vertexCallback, options?.style);
   }
 
   makeVector2(x: number, y: number): Vector2 {
@@ -733,5 +735,10 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
     const supplier = new CssColorSupplier(this.canvasElement, variableName, fallbackColor);
     this.cssColorSupplierByVariableName[variableName] = supplier;
     return supplier;
+  }
+
+  makeTexDrawnImage(expression: string, origin: Vector2, options?: TexDrawnImageOptions | undefined): DrawnImage {
+    const imageUrl = this.texRenderer.renderTexExpressionToImageDataUrl(expression, options);
+    return this.makeDrawnImage(origin, imageUrl, options);
   }
 }

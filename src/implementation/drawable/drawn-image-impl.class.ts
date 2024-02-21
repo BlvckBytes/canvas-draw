@@ -9,6 +9,7 @@ export class DrawnImageImpl implements DrawnImage {
   public width: number | null;
   public height: number | null;
   public centerRotationOrigin: boolean;
+  public applyScaling: boolean;
 
   constructor(
     public origin: Vector2,
@@ -16,12 +17,14 @@ export class DrawnImageImpl implements DrawnImage {
     width?: number | null,
     height?: number | null,
     centerRotationOrigin?: boolean,
+    applyScaling?: boolean,
     style?: StyleConfig,
   ) {
     this.style = style !== undefined ? style : new StyleConfigImpl();
     this.width = width !== undefined ? width                                              : null;
     this.height = height !== undefined ? height                                           : null;
     this.centerRotationOrigin = centerRotationOrigin !== undefined ? centerRotationOrigin : false;
+    this.applyScaling = applyScaling !== undefined ? applyScaling : false;
   }
 
   configureStyle(receiver: (style: StyleConfig) => void): DrawnImage {
