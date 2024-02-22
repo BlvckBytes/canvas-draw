@@ -8,7 +8,7 @@ export interface ControlRegistry {
   ): ButtonHandle;
 
   registerSlider(
-    onChange: (button: SliderHandle) => void,
     onSetup: (button: SliderHandle) => void,
+    onChange: (button: SliderHandle) => void,
   ): SliderHandle;
 }
