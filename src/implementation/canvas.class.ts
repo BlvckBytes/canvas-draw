@@ -717,7 +717,7 @@ export class Canvas implements CanvasHandle, CanvasEventConsumer, CanvasTypeProv
   }
 
   makeGraphedCurve(origin: Vector2, curveColor: ColorSupplier, curve: (x: number) => number, options?: GraphedCurveOptions | undefined): GraphedCurve {
-    return new GraphedCurveImpl(origin, curveColor, curve, options?.xStart, options?.xEnd, options?.stepSize);
+    return new GraphedCurveImpl(origin, curveColor, curve, options?.xStart, options?.xEnd, options?.stepSize, options?.curveStrokeWidth);
   }
 
   makePolygon(numberOfEdges: number, radius: number, origin: Vector2, options?: PolygonOptions | undefined): Polygon {

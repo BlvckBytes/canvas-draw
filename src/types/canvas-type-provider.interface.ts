@@ -74,6 +74,7 @@ export interface GraphedCurveOptions {
   xStart?: number;
   xEnd?: number;
   stepSize?: number;
+  curveStrokeWidth?: number;
 }
 
 export interface PolygonOptions extends StylableOptions {

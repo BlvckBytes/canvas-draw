@@ -10,11 +10,10 @@ export class GraphedCurveImpl implements GraphedCurve {
 
   type: 'drawable-composite' = 'drawable-composite';
 
-  public curveStrokeWidth = 1/10;
-
-  public xStart = 0;
-  public xEnd = 2;
-  public stepSize = 1/10;
+  public curveStrokeWidth: number;
+  public xStart: number;
+  public xEnd: number;
+  public stepSize: number;
 
   constructor(
     public origin: Vector2,
@@ -23,15 +22,12 @@ export class GraphedCurveImpl implements GraphedCurve {
     xStart?: number,
     xEnd?: number,
     stepSize?: number,
+    curveStrokeWidth?: number,
   ) {
-    if (xStart !== undefined)
-      this.xStart = xStart;
-
-    if (xEnd !== undefined)
-      this.xEnd = xEnd;
-
-    if (stepSize !== undefined)
-      this.stepSize = stepSize;
+    this.xStart = xStart !== undefined ? xStart                               : 0;
+    this.xEnd = xEnd !== undefined ? xEnd                                     : 2;
+    this.stepSize = stepSize !== undefined ? stepSize                         : 1/10;
+    this.curveStrokeWidth = curveStrokeWidth !== undefined ? curveStrokeWidth : 1/10;
   }
 
   compose(): Drawable[] {
